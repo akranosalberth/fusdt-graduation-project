@@ -1,0 +1,16 @@
+{
+  "name": "tronbox-graduation-token",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A fixed-supply TRC-20 token for a university graduation project",
+  "scripts": {
+    "compile": "tronbox compile --all",
+    "test": "tronbox test",
+    "deploy:shasta": "tronbox migrate --network shasta --reset",
+    "deploy:nile": "tronbox migrate --network nile --reset"
+  },
+  "devDependencies": {
+    "dotenv": "^16.6.1",
+    "tronbox": "4.9.0"
+  }
+}

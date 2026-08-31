@@ -53,9 +53,15 @@
       background: #128363;
     }
 
+    button:disabled {
+      background: #8acdb8;
+      cursor: wait;
+    }
+
     #message {
       margin-top: 16px;
       font-weight: bold;
+      overflow-wrap: anywhere;
     }
 
     a {
@@ -96,12 +102,13 @@
       <a
         href="https://sepolia.etherscan.io/address/0xCe5ac89c1Aa88ba0b23F7c47D0Aa3655Ac14Fb61"
         target="_blank"
+        rel="noopener noreferrer"
       >
         View contract on Sepolia Etherscan
       </a>
     </p>
 
-    <button onclick="addFUSDT()">
+    <button id="addButton" type="button" onclick="addFUSDT()">
       Add fUSDT to MetaMask
     </button>
 
@@ -109,14 +116,24 @@
   </div>
 
   <script>
+    const token = {
+      address: "0xCe5ac89c1Aa88ba0b23F7c47D0Aa3655Ac14Fb61",
+      symbol: "fUSDT",
+      decimals: 6,
+      image: "https://akranosalberth.github.io/fusdt-graduation-project/fUSDT-token-logo-tronscan.png"
+    };
+
     async function addFUSDT() {
       const message = document.getElementById("message");
+      const button = document.getElementById("addButton");
 
       if (!window.ethereum) {
         message.textContent =
           "MetaMask was not detected. Please install and unlock MetaMask.";
         return;
       }
+
+      button.disabled = true;
 
       try {
         message.textContent = "Connecting to MetaMask...";
@@ -125,24 +142,31 @@
           method: "eth_requestAccounts"
         });
 
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{
-            chainId: "0xaa36a7"
-          }]
+        const currentChainId = await window.ethereum.request({
+          method: "eth_chainId"
         });
+
+        if (currentChainId !== "0xaa36a7") {
+          message.textContent = "Switching to Ethereum Sepolia...";
+
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [
+              {
+                chainId: "0xaa36a7"
+              }
+            ]
+          });
+        }
+
+        message.textContent = "Waiting for token confirmation...";
 
         const added = await window.ethereum.request({
           method: "wallet_watchAsset",
-          params: [
-            "ERC20",
-            {
-              address: "0xCe5ac89c1Aa88ba0b23F7c47D0Aa3655Ac14Fb61",
-              symbol: "fUSDT",
-              decimals: 6,
-              image: "https://akranosalberth.github.io/fusdt-graduation-project/fUSDT-token-logo-tronscan.png"
-            }
-          ]
+          params: {
+            type: "ERC20",
+            options: token
+          }
         });
 
         if (added) {
@@ -154,8 +178,16 @@
         }
       } catch (error) {
         console.error(error);
-        message.textContent =
-          "The request was cancelled or could not be completed.";
+
+        if (error.code === 4001) {
+          message.textContent =
+            "The request was rejected in MetaMask. Please try again and approve it.";
+        } else {
+          message.textContent =
+            "MetaMask error: " + (error.message || "Unknown error");
+        }
+      } finally {
+        button.disabled = false;
       }
     }
   </script>
